@@ -160,6 +160,6 @@ void testInstance(const std::string& filename)
 
 int main() {
     testInstance();
-    testInstance("data.txt");
+    //testInstance("data.txt");
     return 0;
 }
