@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <chrono>
+#include <random>
 
 #include <algorithm>
 
@@ -45,28 +47,6 @@ int getCmax(const std::vector<Task> &tasks, const std::vector<int> &order) {
     return cmax;
 }
 
-Solution getBestSolution(Problem &problem) {
-    int n = problem.tasks.size();
-    std::vector<int> order(n);
-    for (int i = 0; i < n; i++)
-    {
-        order[i] = i;
-    }
-
-    Solution bestSolution;
-
-    do {
-        int cmax = getCmax(problem.tasks, order);
-        if (cmax < bestSolution.cmax)
-        {
-            bestSolution.cmax = cmax;
-            bestSolution.order = order;
-        }
-    } while (std::next_permutation(order.begin(), order.end()));
-
-    return bestSolution;
-}
-
 std::vector<int> initializeOrder(int n)
 {
     std::vector<int> order(n);
@@ -77,9 +57,33 @@ std::vector<int> initializeOrder(int n)
     return order;
 }
 
+Solution getBestSolution(Problem &problem) {
+
+    std::vector<int> order = initializeOrder(problem.tasks.size());
+    Solution bestSolution;
+    auto start = std::chrono::high_resolution_clock::now();
+
+    do {
+        int cmax = getCmax(problem.tasks, order);
+        if (cmax < bestSolution.cmax)
+        {
+            bestSolution.cmax = cmax;
+            bestSolution.order = order;
+        }
+    } while (std::next_permutation(order.begin(), order.end()));
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "getBestSolution time: " << elapsed.count() << " seconds\n";
+
+    return bestSolution;
+}
+
+
 
 Solution heuristicSort(Problem &problem, const std::string& sortBy) {
     std::vector<int> order = initializeOrder(problem.tasks.size());
+    auto start = std::chrono::high_resolution_clock::now();
 
     if (sortBy == "rj")
     {
@@ -97,8 +101,65 @@ Solution heuristicSort(Problem &problem, const std::string& sortBy) {
     bestSolution.order = order;
     bestSolution.cmax = getCmax(problem.tasks, order);
 
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "heuristicSort by " << sortBy << " time: " << elapsed.count() << " seconds\n";
+
     return bestSolution;
 }
+
+Solution hybridSort(Problem &problem) {
+    std::vector<int> order = initializeOrder(problem.tasks.size());
+    int n =problem.tasks.size();
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+
+
+
+    std::sort(order.begin(), order.end(), [&](int i, int j) {
+        return problem.tasks[i].rj < problem.tasks[j].rj;
+    });
+
+    std::vector<int> finalOrder;
+    int currentTime = 0;
+    std::vector<int> available;
+    size_t index = 0;
+
+    while (finalOrder.size() < n) {
+        // Dodajemy dostępne zadania
+        while (index < n && problem.tasks[order[index]].rj <= currentTime) {
+            available.push_back(order[index]);
+            index++;
+        }
+
+        if (!available.empty()) {
+            // Wybieramy zadanie o największym qj
+            auto max_qj_it = std::max_element(available.begin(), available.end(), [&](int a, int b) {
+                return problem.tasks[a].qj < problem.tasks[b].qj;
+            });
+
+            int selected = *max_qj_it;
+            available.erase(max_qj_it);
+            finalOrder.push_back(selected);
+            currentTime = std::max(currentTime, problem.tasks[selected].rj) + problem.tasks[selected].pj;
+        } else {
+            // Jeśli nie ma dostępnych zadań, przesuwamy czas
+            currentTime = problem.tasks[order[index]].rj;
+        }
+    }
+
+    Solution bestSolution;
+    bestSolution.order = finalOrder;
+    bestSolution.cmax = getCmax(problem.tasks, finalOrder);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "hybridSort time: " << elapsed.count() << " seconds\n";
+    return bestSolution;
+}
+
+
 
 
 
@@ -114,6 +175,7 @@ void testInstance() {
     Solution bestSolution = getBestSolution(problem);
     Solution sortSolutionRj = heuristicSort(problem, "rj");
     Solution sortSolutionQj = heuristicSort(problem, "qj");
+    Solution mySolution= hybridSort(problem);
 
     std::cout << "Best cmax with permautation: " << bestSolution.cmax << "\nOrder: ";
     for (int i : bestSolution.order)
@@ -131,6 +193,13 @@ void testInstance() {
 
     std::cout << "Best cmax with sort by qj: " << sortSolutionQj.cmax << "\nOrder: ";
     for (int i : sortSolutionQj.order)
+    {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Best cmax with own algorithm: " << sortSolutionQj.cmax << "\nOrder: ";
+    for (int i : mySolution.order)
     {
         std::cout << i << " ";
     }
@@ -158,6 +227,7 @@ void testInstance(const std::string& filename)
     Solution bestSolution = getBestSolution(problem);
     Solution  sortSolutionRj = heuristicSort(problem, "rj");
     Solution  sortSolutionQj = heuristicSort(problem, "qj");
+    Solution mySolution = hybridSort(problem);
 
 
     std::cout << "Best cmax with permautation: " << bestSolution.cmax << "\nOrder: ";
@@ -177,6 +247,13 @@ void testInstance(const std::string& filename)
 
     std::cout << "Best cmax with sort: " << sortSolutionQj.cmax << "\nOrder: ";
     for (int i : sortSolutionQj.order)
+    {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Best cmax with own algorithm: " << sortSolutionQj.cmax << "\nOrder: ";
+    for (int i : mySolution.order)
     {
         std::cout << i << " ";
     }
