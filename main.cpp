@@ -77,13 +77,21 @@ std::vector<int> initializeOrder(int n)
     return order;
 }
 
-Solution heuristicSort(Problem &problem)
-{
+
+Solution heuristicSort(Problem &problem, const std::string& sortBy) {
     std::vector<int> order = initializeOrder(problem.tasks.size());
 
-    std::sort(order.begin(), order.end(), [&](int i, int j) {
-        return problem.tasks[i].rj < problem.tasks[j].rj;
-  });
+    if (sortBy == "rj")
+    {
+        std::sort(order.begin(), order.end(), [&](int i, int j) {
+            return problem.tasks[i].rj < problem.tasks[j].rj;
+        });
+    }
+    else if (sortBy == "qj") {
+        std::sort(order.begin(), order.end(), [&](int i, int j) {
+            return problem.tasks[i].qj > problem.tasks[j].qj;
+        });
+    }
 
     Solution bestSolution;
     bestSolution.order = order;
@@ -91,6 +99,7 @@ Solution heuristicSort(Problem &problem)
 
     return bestSolution;
 }
+
 
 
 void testInstance() {
@@ -103,7 +112,8 @@ void testInstance() {
     problem.addTask(4, 7,1);
 
     Solution bestSolution = getBestSolution(problem);
-    Solution sortSolution = heuristicSort(problem);
+    Solution sortSolutionRj = heuristicSort(problem, "rj");
+    Solution sortSolutionQj = heuristicSort(problem, "qj");
 
     std::cout << "Best cmax with permautation: " << bestSolution.cmax << "\nOrder: ";
     for (int i : bestSolution.order)
@@ -112,8 +122,15 @@ void testInstance() {
     }
     std::cout << std::endl;
 
-    std::cout << "Best cmax with sort: " << sortSolution.cmax << "\nOrder: ";
-    for (int i : sortSolution.order)
+    std::cout << "Best cmax with sort by rj: " << sortSolutionRj.cmax << "\nOrder: ";
+    for (int i : sortSolutionRj.order)
+    {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Best cmax with sort by qj: " << sortSolutionQj.cmax << "\nOrder: ";
+    for (int i : sortSolutionQj.order)
     {
         std::cout << i << " ";
     }
@@ -139,7 +156,8 @@ void testInstance(const std::string& filename)
     }
 
     Solution bestSolution = getBestSolution(problem);
-    Solution  sortSolution = heuristicSort(problem);
+    Solution  sortSolutionRj = heuristicSort(problem, "rj");
+    Solution  sortSolutionQj = heuristicSort(problem, "qj");
 
 
     std::cout << "Best cmax with permautation: " << bestSolution.cmax << "\nOrder: ";
@@ -149,8 +167,16 @@ void testInstance(const std::string& filename)
     }
     std::cout << std::endl;
 
-    std::cout << "Best cmax with sort: " << sortSolution.cmax << "\nOrder: ";
-    for (int i : sortSolution.order)
+    std::cout << "Best cmax with sort: " << sortSolutionRj.cmax << "\nOrder: ";
+    for (int i : sortSolutionRj.order)
+    {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+
+
+    std::cout << "Best cmax with sort: " << sortSolutionQj.cmax << "\nOrder: ";
+    for (int i : sortSolutionQj.order)
     {
         std::cout << i << " ";
     }
