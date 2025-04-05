@@ -3,7 +3,6 @@
 #include <fstream>
 #include <chrono>
 #include <random>
-
 #include <algorithm>
 
  class Task{
@@ -109,13 +108,11 @@ Solution heuristicSort(Problem &problem, const std::string& sortBy) {
 }
 
 Solution hybridSort(Problem &problem) {
-    std::vector<int> order = initializeOrder(problem.tasks.size());
-    int n =problem.tasks.size();
+    int n = problem.tasks.size();
+    std::vector<int> order = initializeOrder(n);
+
 
     auto start = std::chrono::high_resolution_clock::now();
-
-
-
 
     std::sort(order.begin(), order.end(), [&](int i, int j) {
         return problem.tasks[i].rj < problem.tasks[j].rj;
@@ -128,12 +125,14 @@ Solution hybridSort(Problem &problem) {
 
     while (finalOrder.size() < n) {
         // Dodajemy dostępne zadania
-        while (index < n && problem.tasks[order[index]].rj <= currentTime) {
+        while (index < n && problem.tasks[order[index]].rj <= currentTime)
+        {
             available.push_back(order[index]);
             index++;
         }
 
-        if (!available.empty()) {
+        if (!available.empty())
+        {
             // Wybieramy zadanie o największym qj
             auto max_qj_it = std::max_element(available.begin(), available.end(), [&](int a, int b) {
                 return problem.tasks[a].qj < problem.tasks[b].qj;
@@ -143,7 +142,8 @@ Solution hybridSort(Problem &problem) {
             available.erase(max_qj_it);
             finalOrder.push_back(selected);
             currentTime = std::max(currentTime, problem.tasks[selected].rj) + problem.tasks[selected].pj;
-        } else {
+        } else
+        {
             // Jeśli nie ma dostępnych zadań, przesuwamy czas
             currentTime = problem.tasks[order[index]].rj;
         }
@@ -157,6 +157,87 @@ Solution hybridSort(Problem &problem) {
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "hybridSort time: " << elapsed.count() << " seconds\n";
     return bestSolution;
+}
+
+Solution schrage(Problem &problem) {
+    int n = problem.tasks.size();
+    std::vector<int> order;
+    std::vector<Task> tasks = problem.tasks;
+
+    std::sort(tasks.begin(), tasks.end(), [](const Task &a, const Task &b) {
+        return a.rj < b.rj;
+    });
+
+    int t = 0;
+    int cmax = 0;
+    std::vector<Task> available;
+    size_t index = 0;
+
+    while (order.size() < n) {
+        while (index < n && tasks[index].rj <= t) {
+            available.push_back(tasks[index]);
+            index++;
+        }
+
+        if (!available.empty()) {
+            auto max_qj_it = std::max_element(available.begin(), available.end(), [](const Task &a, const Task &b) {
+                return a.qj < b.qj;
+            });
+            Task task = *max_qj_it;
+            available.erase(max_qj_it);
+            order.push_back(std::distance(problem.tasks.data(), &task));
+            t += task.pj;
+            cmax = std::max(cmax, t + task.qj);
+        } else {
+            t = tasks[index].rj;
+        }
+    }
+
+    Solution solution;
+    solution.order = order;
+    solution.cmax = cmax;
+    return solution;
+}
+
+Solution schragePMTN(Problem &problem) {
+    int n = problem.tasks.size();
+    std::vector<Task> tasks = problem.tasks;
+
+    std::sort(tasks.begin(), tasks.end(), [](const Task &a, const Task &b) {
+        return a.rj < b.rj;
+    });
+
+    int t = 0;
+    int cmax = 0;
+    int current_qj = 0;
+    std::vector<Task> available;
+    size_t index = 0;
+
+    while (!available.empty() || index < n) {
+        while (index < n && tasks[index].rj <= t) {
+            available.push_back(tasks[index]);
+            if (tasks[index].qj > current_qj) {
+                current_qj = tasks[index].qj;
+            }
+            index++;
+        }
+
+        if (!available.empty()) {
+            auto max_qj_it = std::max_element(available.begin(), available.end(), [](const Task &a, const Task &b) {
+                return a.qj < b.qj;
+            });
+            Task task = *max_qj_it;
+            available.erase(max_qj_it);
+            t += task.pj;
+            cmax = std::max(cmax, t + task.qj);
+        } else {
+            t = tasks[index].rj;
+        }
+    }
+
+    Solution solution;
+    solution.cmax = cmax;
+    return solution;
 }
 
 
